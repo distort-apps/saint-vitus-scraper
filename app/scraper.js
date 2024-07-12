@@ -72,7 +72,7 @@ const formatDateStringForMongoDB = dateString => {
 
     console.log(`Scraped ${gigzArr.length} event details`)
   } catch (error) {
-    console.error('Error during the main process: ', error)
+    console.log('Error during the main process: ', error)
   } finally {
     await browser.close()
 
@@ -107,7 +107,7 @@ const dynamicScrollAndCollectLinks = async (page, selector) => {
       }
     } while (newSize > previousSize)
   } catch (error) {
-    console.error('Error during dynamic scroll and link collection: ', error)
+    console.log('Error during dynamic scroll and link collection: ', error)
   }
   return Array.from(links).map(item => JSON.parse(item))
 }
@@ -130,7 +130,7 @@ const scrapeEventDetails = async (page, link) => {
         el => el.textContent.trim()
       )
     } catch (err) {
-      console.error(`Error finding title: `, err)
+      console.log(`Error finding title: `, err)
       title = null
     }
 
@@ -144,7 +144,7 @@ const scrapeEventDetails = async (page, link) => {
       date = `${parts[0].trim()}, ${parts[1].trim()}`
       time = parts[2].trim()
     } catch (err) {
-      console.error(`Error finding date and time: `, err)
+      console.log(`Error finding date and time: `, err)
       date = null
       time = null
     }
@@ -155,26 +155,41 @@ const scrapeEventDetails = async (page, link) => {
         el => el.textContent.trim()
       )
     } catch (err) {
-      console.error(`Error finding location with first selector: `, err)
+      console.log(`Error finding location with first selector: `, err)
       try {
         location = await page.$eval(
           'div[class="EventDetailsTitle__Venues-sc-8ebcf47a-1 cqBRcR"] a',
           el => el.textContent.trim()
         )
       } catch (err) {
-        console.error(`Error finding location with second selector: `, err)
+        console.log(`Error finding location with second selector: `, err)
         location = null
       }
     }
 
     try {
       price = await page.$eval(
-        'div.EventDetailsCallToAction__PriceRow-sc-3e9a4f58-1 span',
-        el => el.textContent.trim()
-      )
+        'div.EventDetailsCallToAction__Price-sc-5d0ca115-6 span',
+        el => {
+          const match = el.textContent.trim().match(/\$\d+\.\d{2}/);
+          return match ? match[0] : 'not sure';
+        }
+      );
     } catch (err) {
-      console.error(`Error finding price: `, err)
-      price = null
+      console.log("did not find price on " + link);
+    }
+    
+    try {
+      price = await page.$eval(
+        'div.EventDetailsCallToAction__Price-sc-5d0ca115-6',
+        el => {
+          const match = el.textContent.trim().match(/\$\d+\.\d{2}/);
+          return match ? match[0] : 'not sure';
+        }
+      );
+    } catch (err) {
+      console.log(`Error 2nd finding price on ${link}: `, err);
+      price = 'not sure';
     }
 
     try {
@@ -183,7 +198,7 @@ const scrapeEventDetails = async (page, link) => {
         el => el.src
       )
     } catch (err) {
-      console.error(`Error finding image: `, err)
+      console.log(`Error finding image: `, err)
       image = null
     }
 
@@ -193,7 +208,7 @@ const scrapeEventDetails = async (page, link) => {
         el => el.textContent.trim()
       )
     } catch (err) {
-      console.error(`Error finding excerpt: `, err)
+      console.log(`Error finding excerpt: `, err)
       excerpt = null
     }
 
@@ -253,7 +268,7 @@ const scrapeEventDetails = async (page, link) => {
       isFeatured
     }
   } catch (error) {
-    console.error(`Error scraping details from ${link}: `, error)
+    console.log(`Error scraping details from ${link}: `, error)
     return null
   }
 }
